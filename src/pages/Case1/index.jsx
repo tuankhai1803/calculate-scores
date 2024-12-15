@@ -6,57 +6,31 @@ import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Nếu muốn tạo tên duy nhất
 import { utils, write } from 'xlsx';
 import { saveAs } from 'file-saver';
+import { columnsConfig, max, min } from '../../constant';
 
 const DEFAULT_VALUE = {
   totalScore: '',
   count: '',
 };
 
-const Dashboard = () => {
+const Case1 = () => {
   const { handleSubmit, control, reset } = useForm({
     defaultValuesL: DEFAULT_VALUE,
   });
   const [data, setData] = useState([]);
   const [api, contextHolder] = notification.useNotification();
 
-  const openNotificationWithIcon = (type) => {
+  const openNotificationWithIcon = (type, description) => {
     api[type]({
       message: 'Error',
-      description: 'Không có data để xuất file',
+      description: description || 'Không có data để xuất file',
     });
   };
 
   function generateColumns(totalScore, count) {
-    // Cấu hình các cột và range của chúng
-    const columnsConfig = [
-      { key: 'TC2', max: 1.0, range: [0.4, 1] },
-      { key: 'TC3', max: 1.0, range: [0.4, 1] },
-      { key: 'TC4', max: 1.0, range: [0.4, 1] },
-      { key: 'TC5', max: 1.0, range: [0.4, 1] },
-      { key: 'TC6', max: 2.0, range: [0.8, 2] },
-      { key: 'TC7', max: 1.0, range: [0.4, 1] },
-      { key: 'TC8', max: 1.0, range: [0.4, 1] },
-    ];
-
-    // Hàm random trong khoảng min và max
+    // Hàm random trong khoảng min và max, làm tròn đến 2 chữ số
     function randomInRange(min, max) {
       return parseFloat((Math.random() * (max - min) + min).toFixed(2));
-    }
-
-    // Hàm điều chỉnh tổng điểm
-    function adjustColumns(values) {
-      let currentSum = values.reduce((sum, v) => sum + v, 0);
-
-      for (let i = 0; i < values.length; i++) {
-        if (currentSum > totalScore) {
-          const difference = currentSum - totalScore;
-          const newValue = Math.max(values[i] - difference, columnsConfig[i].range[0]);
-          currentSum -= values[i] - newValue;
-          values[i] = newValue;
-        }
-      }
-
-      return values;
     }
 
     // Danh sách tên ngẫu nhiên
@@ -84,18 +58,60 @@ const Dashboard = () => {
       let row = [];
       let remainingScore = totalScore;
 
-      for (const col of columnsConfig) {
-        const { range } = col;
-        const maxAssignable = Math.min(col.max, remainingScore);
+      // Bước 1: Gán giá trị ngẫu nhiên vào mỗi cột trong phạm vi range của nó
+      columnsConfig.forEach((col) => {
+        const minValue = col.range[0]; // Giá trị tối thiểu của cột
+        const maxValue = col.range[1]; // Giá trị tối đa của cột
+        const randomValue = randomInRange(minValue, maxValue);
+        row.push(randomValue);
+        remainingScore -= randomValue; // Trừ đi giá trị ngẫu nhiên đã gán
+      });
 
-        const value = randomInRange(Math.max(range[0], 0), Math.min(range[1], maxAssignable));
+      // Bước 2: Phân phối phần điểm còn lại vào các cột sao cho không vượt quá giá trị max
+      let i = 0;
+      while (remainingScore > 0 && i < row.length) {
+        const col = columnsConfig[i];
+        const maxAssignable = Math.min(col.max, row[i] + remainingScore); // Không vượt quá maxAssignable
+        const maxAddable = maxAssignable - row[i]; // Phần điểm có thể thêm vào cột này
 
-        row.push(value);
-        remainingScore -= value;
+        // Thêm phần điểm vào cột mà không vượt quá giới hạn
+        const addValue = Math.min(remainingScore, maxAddable);
+        row[i] = parseFloat((row[i] + addValue).toFixed(2)); // Làm tròn đến 2 chữ số
+        remainingScore -= addValue;
+
+        i++; // Chuyển sang cột tiếp theo
       }
 
-      // Điều chỉnh tổng điểm
-      row = adjustColumns(row);
+      // Bước 3: Nếu còn điểm dư, phân phối đều cho các cột còn lại
+      if (remainingScore > 0) {
+        for (let j = 0; j < row.length && remainingScore > 0; j++) {
+          const col = columnsConfig[j];
+          const maxAssignable = Math.min(col.max, row[j] + remainingScore); // Không vượt quá maxAssignable
+          const maxAddable = maxAssignable - row[j]; // Phần điểm có thể thêm vào cột này
+
+          // Thêm phần điểm vào cột mà không vượt quá giới hạn
+          const addValue = Math.min(remainingScore, maxAddable);
+          row[j] = parseFloat((row[j] + addValue).toFixed(2)); // Làm tròn đến 2 chữ số
+          remainingScore -= addValue;
+
+          // Nếu phần điểm dư còn lại đã được phân phối hết, dừng lại
+          if (remainingScore <= 0) {
+            break;
+          }
+        }
+      }
+
+      // Đảm bảo tổng các giá trị trong hàng chính xác bằng totalScore
+      const totalRowScore = row.reduce((sum, v) => sum + v, 0);
+      if (Math.abs(totalRowScore - totalScore) > 0.01) {
+        // Điều chỉnh thêm để đảm bảo tổng điểm chính xác
+        const diff = totalScore - totalRowScore;
+        // Kiểm tra sự chênh lệch và chỉ điều chỉnh nếu cần thiết
+        if (row[0] + diff >= 0) {
+          // Nếu điều chỉnh vào cột đầu tiên không gây âm
+          row[0] = parseFloat((row[0] + diff).toFixed(2));
+        }
+      }
 
       // Thêm hàng vào kết quả
       data.push({
@@ -115,6 +131,12 @@ const Dashboard = () => {
     const totalScore = values?.totalScore || 8;
     const count = values?.count || 10;
 
+    if (totalScore > max) {
+      return openNotificationWithIcon('error', `Tổng điểm không được > ${max}`);
+    } else if (totalScore < min) {
+      return openNotificationWithIcon('error', `Tổng điểm không được < ${min}`);
+    }
+
     const data = generateColumns(totalScore, count);
     setData(data);
   };
@@ -124,7 +146,14 @@ const Dashboard = () => {
       openNotificationWithIcon('error');
       return;
     }
-    const worksheet = utils.json_to_sheet(data);
+
+    const newData = data.map((item) => {
+      // eslint-disable-next-line no-unused-vars
+      const { key, ...rest } = item; // Destructuring để loại bỏ trường 'age'
+      return rest;
+    });
+
+    const worksheet = utils.json_to_sheet(newData);
     const workbook = utils.book_new();
 
     utils.book_append_sheet(workbook, worksheet, 'Data');
@@ -194,4 +223,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Case1;

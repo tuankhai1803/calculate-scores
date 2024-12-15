@@ -21,5 +21,5 @@ export const TableComp = (props) => {
   // TC8 cao nhất là 1.0 điểm (range 0.4 ~ 1)
 
   // eslint-disable-next-line react/prop-types
-  return <Table columns={tableColumns} dataSource={props?.data || []} />;
+  return <Table columns={props?.tableColumns || tableColumns} dataSource={props?.data || []} />;
 };
