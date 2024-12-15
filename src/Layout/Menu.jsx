@@ -24,9 +24,11 @@ export const Menu = () => {
   };
 
   useEffect(() => {
-    setCurrent(location.pathname === '/case-1' ? 'case-1' : 'case-2');
+    const redirectPage = location.pathname === '/case-2' ? 'case-2' : 'case-1';
+    setCurrent(redirectPage);
+    navigate(redirectPage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.pathname]);
 
   return <MenuComp onClick={onClick} selectedKeys={[current]} mode="vertical" items={items} />;
 };
