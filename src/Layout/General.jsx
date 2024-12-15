@@ -1,8 +1,8 @@
 import { Layout } from 'antd';
 import { Content, Footer, Header } from 'antd/es/layout/layout';
 import Sider from 'antd/es/layout/Sider';
-import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { Menu } from './Menu';
 
 const headerStyle = {
   textAlign: 'center',
@@ -20,10 +20,10 @@ const contentStyle = {
 };
 
 const siderStyle = {
-  textAlign: 'center',
   lineHeight: '120px',
   color: '#fff',
-  backgroundColor: '#1677ff',
+  backgroundColor: '#fff',
+  margin: '8px 0',
 };
 
 const footerStyle = {
@@ -45,7 +45,7 @@ const General = () => {
       <Header style={headerStyle}>Header</Header>
       <Layout>
         <Sider width="15%" style={siderStyle}>
-          Sider
+          <Menu />
         </Sider>
         <Content style={contentStyle}>
           <Outlet />
