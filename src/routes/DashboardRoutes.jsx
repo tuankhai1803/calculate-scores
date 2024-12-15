@@ -3,6 +3,7 @@ import General from '../Layout/General';
 import Dashboard from '../pages/Case1';
 import ErrorPage from '../pages/Error';
 import Case2 from '../pages/Case2';
+import { Navigate } from 'react-router-dom';
 
 export const DashboardRoutes = [
   {
@@ -13,7 +14,7 @@ export const DashboardRoutes = [
     children: [
       {
         id: 'case1',
-        path: '/case-1',
+        path: 'case-1',
         element: (
           <Suspense>
             <Dashboard />
@@ -22,7 +23,7 @@ export const DashboardRoutes = [
       },
       {
         id: 'case2',
-        path: '/case-2',
+        path: 'case-2',
         element: (
           <Suspense>
             <Case2 />
