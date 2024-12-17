@@ -30,6 +30,47 @@ const Case2 = () => {
     });
   };
 
+  const distributeExcess = (row, maxValues, totalScore) => {
+    const total = row.reduce((sum, item) => sum + item, 0);
+    let excess = total - totalScore;
+
+    // Nếu không có dư thừa, return row ngay
+    if (excess <= 0) return row;
+
+    // Tạo một mảng các chỉ số row và hiệu (max - row)
+    const indices = row.map((value, index) => ({
+      index,
+      remainingCapacity: maxValues[index] - value,
+    }));
+
+    // Lặp để phân bổ số dư
+    while (excess > 0) {
+      // Sắp xếp các index theo remainingCapacity giảm dần
+      indices.sort((a, b) => b.remainingCapacity - a.remainingCapacity);
+
+      let distributed = false;
+
+      for (let i = 0; i < indices.length; i++) {
+        const { index, remainingCapacity } = indices[i];
+
+        if (remainingCapacity > 0) {
+          // Tính phần dư chia đều cho các row còn khả năng chứa
+          const share = Math.min(remainingCapacity, Math.ceil(excess / indices.length));
+
+          row[index] += share; // Cộng phần chia vào row
+          excess -= share; // Giảm số dư
+          indices[i].remainingCapacity -= share; // Cập nhật remainingCapacity
+          distributed = true;
+        }
+      }
+
+      // Nếu không thể phân bổ thêm, thoát vòng lặp
+      if (!distributed) break;
+    }
+
+    return row;
+  };
+
   function generateColumns(totalScore) {
     // Hàm random trong khoảng min và max, làm tròn đến 2 chữ số
     function randomInRange(min, max) {
@@ -38,6 +79,7 @@ const Case2 = () => {
 
     let row = [];
     let remainingScore = totalScore;
+    let numbers = [0, 1, 2, 3, 4, 5, 6];
 
     // Bước 1: Gán giá trị ngẫu nhiên vào mỗi cột trong phạm vi range của nó
     columnsConfig.forEach((col) => {
@@ -45,56 +87,27 @@ const Case2 = () => {
       const maxValue = col.range[1]; // Giá trị tối đa của cột
       const randomValue = randomInRange(minValue, maxValue);
       row.push(randomValue);
-      remainingScore -= randomValue; // Trừ đi giá trị ngẫu nhiên đã gán
+      remainingScore -= randomValue;
     });
 
-    // Bước 2: Phân phối phần điểm còn lại vào các cột sao cho không vượt quá giá trị max
-    let i = 0;
-    while (remainingScore > 0 && i < row.length) {
-      const col = columnsConfig[i];
-      const maxAssignable = Math.min(col.max, row[i] + remainingScore); // Không vượt quá maxAssignable
-      const maxAddable = maxAssignable - row[i]; // Phần điểm có thể thêm vào cột này
-
-      // Thêm phần điểm vào cột mà không vượt quá giới hạn
-      const addValue = Math.min(remainingScore, maxAddable);
-      row[i] = parseFloat((row[i] + addValue).toFixed(2)); // Làm tròn đến 2 chữ số
-      remainingScore -= addValue;
-
-      i++; // Chuyển sang cột tiếp theo
+    while (numbers.length !== 0 && remainingScore > 0) {
+      const randomIndex = Math.floor(Math.random() * numbers.length);
+      const idx = numbers[randomIndex];
+      numbers.splice(randomIndex, 1);
+      const diff = columnsConfig[idx].max - row[idx];
+      const resultScore = remainingScore - diff;
+      row[idx] =
+        resultScore > 0
+          ? columnsConfig[idx].max
+          : row.reduce((total, value, index) => (index === idx ? value + resultScore : total + value)) > totalScore
+            ? row[idx] -
+              (
+                row.reduce((total, value, index) => (index === idx ? value + resultScore : total + value)) - totalScore
+              ).toFixed(2)
+            : row[idx] + resultScore;
+      remainingScore = resultScore;
     }
 
-    // Bước 3: Nếu còn điểm dư, phân phối đều cho các cột còn lại
-    if (remainingScore > 0) {
-      for (let j = 0; j < row.length && remainingScore > 0; j++) {
-        const col = columnsConfig[j];
-        const maxAssignable = Math.min(col.max, row[j] + remainingScore); // Không vượt quá maxAssignable
-        const maxAddable = maxAssignable - row[j]; // Phần điểm có thể thêm vào cột này
-
-        // Thêm phần điểm vào cột mà không vượt quá giới hạn
-        const addValue = Math.min(remainingScore, maxAddable);
-        row[j] = parseFloat((row[j] + addValue).toFixed(2)); // Làm tròn đến 2 chữ số
-        remainingScore -= addValue;
-
-        // Nếu phần điểm dư còn lại đã được phân phối hết, dừng lại
-        if (remainingScore <= 0) {
-          break;
-        }
-      }
-    }
-
-    // Đảm bảo tổng các giá trị trong hàng chính xác bằng totalScore
-    const totalRowScore = row.reduce((sum, v) => sum + v, 0);
-    if (Math.abs(totalRowScore - totalScore) > 0.01) {
-      // Điều chỉnh thêm để đảm bảo tổng điểm chính xác
-      const diff = totalScore - totalRowScore;
-      // Kiểm tra sự chênh lệch và chỉ điều chỉnh nếu cần thiết
-      if (row[0] + diff >= 0) {
-        // Nếu điều chỉnh vào cột đầu tiên không gây âm
-        row[0] = parseFloat((row[0] + diff).toFixed(2));
-      }
-    }
-
-    // Trả về kết quả dưới dạng object
     return columnsConfig.reduce((acc, col, index) => {
       acc[col.key] = row[index];
       return acc;
@@ -160,7 +173,7 @@ const Case2 = () => {
   return (
     <>
       {contextHolder}
-      <Row gutter={8} align="bottom">
+      <Row gutter={8} align="top">
         <Col span={3}>
           <Upload beforeUpload={handleImport} showUploadList={false}>
             <Button icon={<UploadOutlined />}>Import Excel</Button>
