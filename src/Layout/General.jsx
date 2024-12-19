@@ -36,7 +36,7 @@ const layoutStyle = {
   overflow: 'hidden',
   width: 'calc(100% - 8px)',
   maxWidth: 'calc(100% - 8px)',
-  height: '100vh',
+  minHeight: '100vh',
 };
 
 const General = () => {
