@@ -31,72 +31,45 @@ const Case2 = () => {
   };
 
   function generateColumns(totalScore) {
-    // Hàm random trong khoảng min và max, làm tròn đến 2 chữ số
+    // Hàm random trong khoảng min và max, làm tròn 2 số thập phân
     function randomInRange(min, max) {
-      return parseFloat((Math.random() * (max - min) + min).toFixed(2));
+      return +(Math.random() * (max - min) + min).toFixed(2);
     }
 
     let row = [];
     let remainingScore = totalScore;
 
-    // Bước 1: Gán giá trị ngẫu nhiên vào mỗi cột trong phạm vi range của nó
+    // Bước 1: Gán giá trị tối thiểu cho mỗi cột
     columnsConfig.forEach((col) => {
-      const minValue = col.range[0]; // Giá trị tối thiểu của cột
-      const maxValue = col.range[1]; // Giá trị tối đa của cột
-      const randomValue = randomInRange(minValue, maxValue);
-      row.push(randomValue);
-      remainingScore -= randomValue; // Trừ đi giá trị ngẫu nhiên đã gán
+      row.push(col.range[0]);
+      remainingScore -= col.range[0];
     });
 
-    // Bước 2: Phân phối phần điểm còn lại vào các cột sao cho không vượt quá giá trị max
-    let i = 0;
-    while (remainingScore > 0 && i < row.length) {
-      const col = columnsConfig[i];
-      const maxAssignable = Math.min(col.max, row[i] + remainingScore); // Không vượt quá maxAssignable
-      const maxAddable = maxAssignable - row[i]; // Phần điểm có thể thêm vào cột này
+    // Bước 2: Phân phối phần còn lại một cách ngẫu nhiên
+    columnsConfig.forEach((col, idx) => {
+      if (remainingScore <= 0) return; // Thoát nếu không còn phần dư
 
-      // Thêm phần điểm vào cột mà không vượt quá giới hạn
-      const addValue = Math.min(remainingScore, maxAddable);
-      row[i] = parseFloat((row[i] + addValue).toFixed(2)); // Làm tròn đến 2 chữ số
-      remainingScore -= addValue;
+      const maxAddable = +(col.range[1] - row[idx]).toFixed(2); // Giá trị tối đa có thể thêm vào
+      const randomValue = randomInRange(0, Math.min(maxAddable, remainingScore));
 
-      i++; // Chuyển sang cột tiếp theo
-    }
+      row[idx] += randomValue;
+      remainingScore -= randomValue;
+    });
 
-    // Bước 3: Nếu còn điểm dư, phân phối đều cho các cột còn lại
+    // Bước 3: Điều chỉnh sai số còn lại vào cột cuối cùng
     if (remainingScore > 0) {
-      for (let j = 0; j < row.length && remainingScore > 0; j++) {
-        const col = columnsConfig[j];
-        const maxAssignable = Math.min(col.max, row[j] + remainingScore); // Không vượt quá maxAssignable
-        const maxAddable = maxAssignable - row[j]; // Phần điểm có thể thêm vào cột này
-
-        // Thêm phần điểm vào cột mà không vượt quá giới hạn
-        const addValue = Math.min(remainingScore, maxAddable);
-        row[j] = parseFloat((row[j] + addValue).toFixed(2)); // Làm tròn đến 2 chữ số
-        remainingScore -= addValue;
-
-        // Nếu phần điểm dư còn lại đã được phân phối hết, dừng lại
-        if (remainingScore <= 0) {
-          break;
-        }
+      for (let i = row.length - 1; i >= 0; i--) {
+        const maxAddable = +(columnsConfig[i].range[1] - row[i]).toFixed(2);
+        const adjustValue = Math.min(maxAddable, remainingScore);
+        row[i] += adjustValue;
+        remainingScore -= adjustValue;
+        if (remainingScore <= 0) break;
       }
     }
 
-    // Đảm bảo tổng các giá trị trong hàng chính xác bằng totalScore
-    const totalRowScore = row.reduce((sum, v) => sum + v, 0);
-    if (Math.abs(totalRowScore - totalScore) > 0.01) {
-      // Điều chỉnh thêm để đảm bảo tổng điểm chính xác
-      const diff = totalScore - totalRowScore;
-      // Kiểm tra sự chênh lệch và chỉ điều chỉnh nếu cần thiết
-      if (row[0] + diff >= 0) {
-        // Nếu điều chỉnh vào cột đầu tiên không gây âm
-        row[0] = parseFloat((row[0] + diff).toFixed(2));
-      }
-    }
-
-    // Trả về kết quả dưới dạng object
+    // Bước 4: Trả về kết quả
     return columnsConfig.reduce((acc, col, index) => {
-      acc[col.key] = row[index];
+      acc[col.key] = +row[index].toFixed(2);
       return acc;
     }, {});
   }
@@ -160,7 +133,7 @@ const Case2 = () => {
   return (
     <>
       {contextHolder}
-      <Row gutter={8} align="bottom">
+      <Row gutter={8} align="top">
         <Col span={3}>
           <Upload beforeUpload={handleImport} showUploadList={false}>
             <Button icon={<UploadOutlined />}>Import Excel</Button>
