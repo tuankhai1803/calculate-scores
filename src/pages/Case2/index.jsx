@@ -30,86 +30,46 @@ const Case2 = () => {
     });
   };
 
-  const distributeExcess = (row, maxValues, totalScore) => {
-    const total = row.reduce((sum, item) => sum + item, 0);
-    let excess = total - totalScore;
-
-    // Nếu không có dư thừa, return row ngay
-    if (excess <= 0) return row;
-
-    // Tạo một mảng các chỉ số row và hiệu (max - row)
-    const indices = row.map((value, index) => ({
-      index,
-      remainingCapacity: maxValues[index] - value,
-    }));
-
-    // Lặp để phân bổ số dư
-    while (excess > 0) {
-      // Sắp xếp các index theo remainingCapacity giảm dần
-      indices.sort((a, b) => b.remainingCapacity - a.remainingCapacity);
-
-      let distributed = false;
-
-      for (let i = 0; i < indices.length; i++) {
-        const { index, remainingCapacity } = indices[i];
-
-        if (remainingCapacity > 0) {
-          // Tính phần dư chia đều cho các row còn khả năng chứa
-          const share = Math.min(remainingCapacity, Math.ceil(excess / indices.length));
-
-          row[index] += share; // Cộng phần chia vào row
-          excess -= share; // Giảm số dư
-          indices[i].remainingCapacity -= share; // Cập nhật remainingCapacity
-          distributed = true;
-        }
-      }
-
-      // Nếu không thể phân bổ thêm, thoát vòng lặp
-      if (!distributed) break;
-    }
-
-    return row;
-  };
-
   function generateColumns(totalScore) {
-    // Hàm random trong khoảng min và max, làm tròn đến 2 chữ số
+    // Hàm random trong khoảng min và max, làm tròn 2 số thập phân
     function randomInRange(min, max) {
-      return parseFloat((Math.random() * (max - min) + min).toFixed(2));
+      return +(Math.random() * (max - min) + min).toFixed(2);
     }
 
     let row = [];
     let remainingScore = totalScore;
-    let numbers = [0, 1, 2, 3, 4, 5, 6];
 
-    // Bước 1: Gán giá trị ngẫu nhiên vào mỗi cột trong phạm vi range của nó
+    // Bước 1: Gán giá trị tối thiểu cho mỗi cột
     columnsConfig.forEach((col) => {
-      const minValue = col.range[0]; // Giá trị tối thiểu của cột
-      const maxValue = col.range[1]; // Giá trị tối đa của cột
-      const randomValue = randomInRange(minValue, maxValue);
-      row.push(randomValue);
+      row.push(col.range[0]);
+      remainingScore -= col.range[0];
+    });
+
+    // Bước 2: Phân phối phần còn lại một cách ngẫu nhiên
+    columnsConfig.forEach((col, idx) => {
+      if (remainingScore <= 0) return; // Thoát nếu không còn phần dư
+
+      const maxAddable = +(col.range[1] - row[idx]).toFixed(2); // Giá trị tối đa có thể thêm vào
+      const randomValue = randomInRange(0, Math.min(maxAddable, remainingScore));
+
+      row[idx] += randomValue;
       remainingScore -= randomValue;
     });
 
-    while (numbers.length !== 0 && remainingScore > 0) {
-      const randomIndex = Math.floor(Math.random() * numbers.length);
-      const idx = numbers[randomIndex];
-      numbers.splice(randomIndex, 1);
-      const diff = columnsConfig[idx].max - row[idx];
-      const resultScore = remainingScore - diff;
-      row[idx] =
-        resultScore > 0
-          ? columnsConfig[idx].max
-          : row.reduce((total, value, index) => (index === idx ? value + resultScore : total + value)) > totalScore
-            ? row[idx] -
-              (
-                row.reduce((total, value, index) => (index === idx ? value + resultScore : total + value)) - totalScore
-              ).toFixed(2)
-            : row[idx] + resultScore;
-      remainingScore = resultScore;
+    // Bước 3: Điều chỉnh sai số còn lại vào cột cuối cùng
+    if (remainingScore > 0) {
+      for (let i = row.length - 1; i >= 0; i--) {
+        const maxAddable = +(columnsConfig[i].range[1] - row[i]).toFixed(2);
+        const adjustValue = Math.min(maxAddable, remainingScore);
+        row[i] += adjustValue;
+        remainingScore -= adjustValue;
+        if (remainingScore <= 0) break;
+      }
     }
 
+    // Bước 4: Trả về kết quả
     return columnsConfig.reduce((acc, col, index) => {
-      acc[col.key] = row[index];
+      acc[col.key] = +row[index].toFixed(2);
       return acc;
     }, {});
   }
