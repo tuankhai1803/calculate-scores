@@ -2,9 +2,9 @@ import { Table } from 'antd';
 
 const tableColumns = [
   { title: 'Name', dataIndex: 'name', key: 'name' },
-  { title: 'TC2 (0.4 ~ 1)', dataIndex: 'TC2', key: 'TC2' },
-  { title: 'TC3 (0.4 ~ 1)', dataIndex: 'TC3', key: 'TC3' },
-  { title: 'TC4 (0.4 ~ 1)', dataIndex: 'TC4', key: 'TC4' },
+  { title: 'TC2 (0.6 ~ 1.5)', dataIndex: 'TC2', key: 'TC2' },
+  { title: 'TC3 (0.6 ~ 1.5)', dataIndex: 'TC3', key: 'TC3' },
+  { title: 'TC4 (0.8 ~ 2)', dataIndex: 'TC4', key: 'TC4' },
   { title: 'TC5 (0.4 ~ 1)', dataIndex: 'TC5', key: 'TC5' },
   { title: 'TC6 (0.8 ~ 2)', dataIndex: 'TC6', key: 'TC6' },
   { title: 'TC7 (0.4 ~ 1)', dataIndex: 'TC7', key: 'TC7' },
