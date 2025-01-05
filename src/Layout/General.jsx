@@ -11,6 +11,8 @@ const headerStyle = {
   paddingInline: 48,
   lineHeight: '64px',
   backgroundColor: '#4096ff',
+  // fontSize: 18,
+  // fontWeight: 'bold',
 };
 
 const contentStyle = {
